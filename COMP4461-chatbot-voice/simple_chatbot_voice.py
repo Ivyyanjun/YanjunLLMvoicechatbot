@@ -1,0 +1,107 @@
+import streamlit as st
+from openai import OpenAI
+import pyttsx3
+import speech_recognition as sr
+import threading
+from openai import OpenAI
+import subprocess
+
+model_name = "gpt-4o-mini"
+
+# STT
+def speech_to_text():
+    recognizer = sr.Recognizer()                                    # Initialize recognizer class (for recognizing the speech)
+    with sr.Microphone() as source:
+        st.info("Listening... Speak now.")
+        try: 
+            audio = recognizer.listen(source, timeout=5)            # Reading Microphone as source
+            st.success("Processing your voice...")
+            return recognizer.recognize_google(audio)               # Using google speech recognition
+        except sr.UnknownValueError:
+            st.error("Unknown Value Error")
+        except sr.RequestError:
+            st.error("Request Error from Google Speech Recognition")
+        except sr.WaitTimeoutError:
+            st.warning("Wait Timeout Error. No speech detected")
+    return None
+
+
+# TTS
+_speech_process = None
+
+def text_to_speech(text):
+    global _speech_process
+    # 如果上一段还在读，先停掉，避免声音重叠
+    if _speech_process and _speech_process.poll() is None:
+        _speech_process.terminate()
+    # 在后台播放，不会卡住页面
+    _speech_process = subprocess.Popen(["say", "-r", "170", text])
+
+    # Initialize TTS engine
+    #tts_engine = pyttsx3.init() 
+   # tts_engine.setProperty('rate', 150)      # set speech property
+    #tts_engine.say(text)
+    #tts_engine.runAndWait()              # Run and wait for the speech to finish
+    #if tts_engine._inLoop:               # End the loop (keep the engine running will cause runtime error)
+       # tts_engine.endLoop()
+
+# Use OpenAI API
+def chat_with_openai():
+    try:
+        # setting up the OpenAI model
+        client = OpenAI(
+             api_key=openai_api_key,
+             base_url="https://api.openai-proxy.org/v1",
+        )
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=st.session_state.messages
+        )
+        msg = response.choices[0].message.content
+        return msg
+    except Exception as e:
+        st.error(f"Error: {e}")
+        return "I encountered an issue. Please try again later."
+
+def handle_user_input(prompt):
+    if not openai_api_key:
+        st.info("Please add your OpenAI API key to continue.")
+        st.stop()
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.chat_message("user").write(prompt)
+    msg = chat_with_openai()
+    st.session_state.messages.append({"role": "assistant", "content": msg})
+    st.chat_message("assistant").write(msg)
+    return msg
+
+# Streamlit UI
+with st.sidebar:
+    openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
+   
+st.title("🎙️ Voice Chat Agent")
+
+# Input options
+input_option = st.radio("Choose Input Method", ("Voice", "Text"))
+
+if "messages" not in st.session_state:
+    greeting = "How can I help you?"
+    st.session_state["messages"] = [{"role": "assistant", "content": greeting}]
+    text_to_speech(greeting)
+
+for msg in st.session_state.messages:
+    st.chat_message(msg["role"]).write(msg["content"])
+
+if input_option == "Voice":
+    st.write("Click the button below and start speaking.")
+    if st.button("Speak"):
+        if prompt := speech_to_text():
+            msg = handle_user_input(prompt)
+            text_to_speech(msg)
+else:
+    if prompt := st.chat_input():
+        msg = handle_user_input(prompt)
+        
+if input_option == "Text" and st.button("Hear the Response"):
+    # print("button click: ",st.session_state["messages"][-1]["content"])
+    msg = st.session_state["messages"][-1]["content"]
+    text_to_speech(msg)

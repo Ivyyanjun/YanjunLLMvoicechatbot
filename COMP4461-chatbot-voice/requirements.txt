@@ -1,0 +1,10 @@
+# 语音聊天机器人需要的 Python 工具包
+# 安装方法：先激活虚拟环境，再运行  pip install -r requirements.txt
+# 需要 Python 3.11
+# Mac 用户请先运行：brew install portaudio（pyaudio 需要它）
+
+openai>=1.40          # 连接大模型（CloseAI / DeepSeek / OpenAI）
+streamlit>=1.40       # 生成网页聊天界面
+PyAudio>=0.2.14       # 读取麦克风
+SpeechRecognition>=3.10   # 把说的话转成文字
+pyttsx3>=2.90         # 把文字读出来
