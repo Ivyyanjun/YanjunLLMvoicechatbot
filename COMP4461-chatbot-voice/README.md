@@ -132,10 +132,7 @@ pip install --default-timeout=120 -r requirements.txt
 
    ```python
            client = AzureOpenAI(
-               api_key=openai_api_key,
-               api_version="2025-02-01-preview",
-               azure_endpoint="https://hkust.azure-api.net/",
-           )
+        
    ```
 
 3. 整段替换成：
